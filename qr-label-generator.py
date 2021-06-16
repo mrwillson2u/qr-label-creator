@@ -71,7 +71,7 @@ for i in range(grid_size[0] * grid_size[1]):
 
     new_group.add(dwg.text('nSight',
         insert=(qr_width/2, qr_width + title_text_height),
-        fill='red',
+        fill='#cc0000',
         font_size='{}px'.format(title_text_height),
         font_weight="bold",
         text_anchor='middle',
