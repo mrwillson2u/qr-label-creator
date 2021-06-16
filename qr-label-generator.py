@@ -26,6 +26,7 @@ print('initial_offset', initial_offset)
 dwg = svgwrite.Drawing('test3.svg', size = page_size)
 dwg.embed_font('Urbane', '/Users/colinwillson/Library/Fonts/Urbane 9.otf')
 
+
 # dwg.translate(initial_offset)
 
 for i in range(grid_size[0] * grid_size[1]):
@@ -66,25 +67,33 @@ for i in range(grid_size[0] * grid_size[1]):
             new_group.add(dwg.rect(currennt_cord, (block_size, block_size), fill='white' if int(square) == 0 else 'black'))
             x += 1
 
-    title_text_size = 12
-    id_text_size = 8
+    title_text_size = 8
+    id_text_size = 6
     text_offset = 0
-    new_group.add(dwg.text('Inventory',
-        insert=(qr_width, title_text_size),
+    new_group.add(dwg.text('nSight Surgical',
+        insert=(qr_width, 10),
+        fill='#cc0000',
+        font_size='{}px'.format(title_text_size),
+        font_weight="bold",
+        # text_anchor='middle',
+        # alignment_baseline='central',
+        font_family="Helvetica"))
+    new_group.add(dwg.text('Inventory Tag',
+        insert=(qr_width, title_text_size + 10),
         fill='black',
         font_size='{}px'.format(title_text_size),
         # font_weight="bold",
         # text_anchor='middle',
         # alignment_baseline='central',
-        font_family="Urbane"))
+        font_family="Helvetica"))
     new_group.add(dwg.text(qr_text,
-        insert=(qr_width, title_text_size + id_text_size),
+        insert=(qr_width, title_text_size + id_text_size + 13),
         fill='black',
         font_size='{}px'.format(id_text_size),
         # font_weight="bold",
         # text_anchor='middle',
         # alignment_baseline='central',
-        font_family="Verdana"))
+        font_family="Helvetica"))
 
     # column_ref = i % 2
     # row_ref =  trunc(i / 1)
