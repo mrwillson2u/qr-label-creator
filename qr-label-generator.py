@@ -10,18 +10,18 @@ import math
 # dwg.add(dwg.text('Test', insert=(0, 0.2), fill='red'))
 # dwg.save()
 
-page_size = (612, 792)
+page_size = (792, 612)
 spacing = (139.5463, 90)
-label_size = (126, 90)
-qr_width = label_size[1] - 10
-grid_size = (4, 8)
-label_offset = (qr_width/2, 0)
+label_size = (104.881, 36.85)
+qr_width = label_size[1]
+grid_size = (3, 10)
+rotation_offset = (0, 0)
 # label_offset = (0, 0)
-tag_rotation = 270
+tag_rotation = 0
 
-initial_offset = ((page_size[0] - (((grid_size[0] - 1) * spacing[0]) + label_size[0]))/2,
-    (page_size[1] - (((grid_size[1] - 1) * spacing[1]) + label_size[1]))/2)
-# initial_offset = (0, 0)
+# initial_offset = ((page_size[0] - (((grid_size[0] - 1) * spacing[0]) + label_size[0]))/2,
+#     (page_size[1] - (((grid_size[1] - 1) * spacing[1]) + label_size[1]))/2)
+initial_offset = (20.41, 22.5358)
 print('initial_offset', initial_offset)
 dwg = svgwrite.Drawing('test3.svg', size = page_size)
 dwg.embed_font('Urbane', '/Users/colinwillson/Library/Fonts/Urbane 9.otf')
@@ -42,6 +42,7 @@ for i in range(grid_size[0] * grid_size[1]):
     print('uuid', qr_text)
     qr = pyqrcode.create(qr_text)
     qrData = qr.text()
+    print('qr_text', qr_text)
     # blocks_per_line = len(qrData) ** 2
     blocks_per_line = 0
     while qrData[blocks_per_line] != '\n':
@@ -52,7 +53,7 @@ for i in range(grid_size[0] * grid_size[1]):
     x = 0
     y = 0
 
-    new_group = dwg.g(id = 'test')
+    new_group = dwg.defs.add(dwg.g(id = qr_text))
     # new_group.translate(initial_offset)
 
     for square in qrData:
@@ -65,23 +66,23 @@ for i in range(grid_size[0] * grid_size[1]):
             new_group.add(dwg.rect(currennt_cord, (block_size, block_size), fill='white' if int(square) == 0 else 'black'))
             x += 1
 
-    title_text_height = 12
+    title_text_size = 12
     id_text_size = 8
     text_offset = 0
     new_group.add(dwg.text('Inventory',
-        insert=(qr_width/2, qr_width + title_text_height),
+        insert=(qr_width, title_text_size),
         fill='black',
-        font_size='{}px'.format(title_text_height),
+        font_size='{}px'.format(title_text_size),
         # font_weight="bold",
-        text_anchor='middle',
+        # text_anchor='middle',
         # alignment_baseline='central',
         font_family="Urbane"))
     new_group.add(dwg.text(qr_text,
-        insert=(qr_width/2, qr_width + 25),
+        insert=(qr_width, title_text_size + id_text_size),
         fill='black',
         font_size='{}px'.format(id_text_size),
         # font_weight="bold",
-        text_anchor='middle',
+        # text_anchor='middle',
         # alignment_baseline='central',
         font_family="Verdana"))
 
@@ -89,12 +90,32 @@ for i in range(grid_size[0] * grid_size[1]):
     # row_ref =  trunc(i / 1)
     # if i % 2 != 0:
     #     column_ref = 1
-    new_group.translate(initial_offset)
-    new_group.translate(5, label_size[1]/2)
-    new_group.translate((spacing[0] * ((i % grid_size[0]))), (spacing[1] * math.trunc(i / grid_size[0])))
-    new_group.translate(-qr_width/2, 0)
-    new_group.rotate(tag_rotation, label_offset)
-    dwg.add(new_group)
+    # new_group.translate(initial_offset)
+    # new_group.translate(5, label_size[1]/2)
+    # new_group.translate((spacing[0] * ((i % grid_size[0]))), (spacing[1] * math.trunc(i / grid_size[0])))
+    # new_group.translate(-qr_width/2, 0)
+    # new_group.rotate(tag_rotation, rotation_offset)
+    # new_group_inverted = dwg.add(new_group)
+    # new_group.rotate(180)
+    # dwg.add(new_group)
+    ng = dwg.use(new_group)
+    ngi = dwg.use(new_group)
+    ngi.translate(label_size[0], 0)
+    ngi.rotate(180)
+
+    pair_group = dwg.g(id = '{}-group'.format(qr_text))
+    pair_group.add(ng)
+    pair_group.add(ngi)
+    pair_group.translate(0, label_size[1])
+    pair_group.translate(initial_offset)
+    # x = (((i % 2) * 133.23) + (math.trunc(i / 10) * 256.5356))
+    # y = (i % 10) * 39.6851
+    # pair_group.translate((((i % 2) * 133.23)),
+    #     (i % 2) * 39.6851)
+    
+    pair_group.translate((((i % 2) * 133.23) + (math.trunc(i / 10) * 256.5356)),
+        ((i % 10)/2 * 113.3851) - ((i % 2) * 17.0075))
+    dwg.add(pair_group)
 # dwg = svgwrite.Drawing('test.svg', profile='tiny')
 # dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
 dwg.save()
