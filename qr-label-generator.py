@@ -13,8 +13,11 @@ import math
 page_size = (612, 792)
 spacing = (139.5463, 90)
 label_size = (126, 90)
+qr_width = label_size[1] - 10
 grid_size = (4, 8)
-label_padding = (5, 5)
+label_offset = (qr_width/2, 0)
+# label_offset = (0, 0)
+tag_rotation = 270
 
 initial_offset = ((page_size[0] - (((grid_size[0] - 1) * spacing[0]) + label_size[0]))/2,
     (page_size[1] - (((grid_size[1] - 1) * spacing[1]) + label_size[1]))/2)
@@ -29,10 +32,10 @@ for i in range(grid_size[0] * grid_size[1]):
 
     # print(qr.text())
 
-    qr_width = 50
+    
 
     tag_offset = (spacing[0] * i, spacing[1] * i)
-    tag_rotation = 0
+    # tag_rotation = 0
     # qr_text = str(uuid.uuid1()) #base64.urlsafe_b64encode(uuid.uuid1().bytes).rstrip(b'=').decode('ascii')
     qr_text = shortuuid.uuid()[:12]
     # qr_text = '12345'
@@ -50,7 +53,7 @@ for i in range(grid_size[0] * grid_size[1]):
     y = 0
 
     new_group = dwg.g(id = 'test')
-    new_group.translate(initial_offset)
+    # new_group.translate(initial_offset)
 
     for square in qrData:
         if square == '\n':
@@ -62,22 +65,23 @@ for i in range(grid_size[0] * grid_size[1]):
             new_group.add(dwg.rect(currennt_cord, (block_size, block_size), fill='white' if int(square) == 0 else 'black'))
             x += 1
 
-    text_height = 12
+    title_text_height = 12
+    id_text_size = 8
     text_offset = 0
     new_group.add(dwg.text('Inventory',
-        insert=(qr_width + text_offset, text_height * 1.3),
+        insert=(qr_width/2, qr_width + title_text_height),
         fill='black',
-        font_size='{}px'.format(text_height),
+        font_size='{}px'.format(title_text_height),
         # font_weight="bold",
-        # text_anchor='middle',
+        text_anchor='middle',
         # alignment_baseline='central',
         font_family="Urbane"))
     new_group.add(dwg.text(qr_text,
-        insert=(qr_width + text_offset, text_height * 3),
+        insert=(qr_width/2, qr_width + 25),
         fill='black',
-        font_size='{}px'.format(text_height),
+        font_size='{}px'.format(id_text_size),
         # font_weight="bold",
-        # text_anchor='middle',
+        text_anchor='middle',
         # alignment_baseline='central',
         font_family="Verdana"))
 
@@ -85,9 +89,11 @@ for i in range(grid_size[0] * grid_size[1]):
     # row_ref =  trunc(i / 1)
     # if i % 2 != 0:
     #     column_ref = 1
-
-    new_group.translate((spacing[0] * ((i % grid_size[0]))) + label_padding[0], (spacing[1] * math.trunc(i / grid_size[0])) + label_padding[1])
-    new_group.rotate(tag_rotation)
+    new_group.translate(initial_offset)
+    new_group.translate(5, label_size[1]/2)
+    new_group.translate((spacing[0] * ((i % grid_size[0]))), (spacing[1] * math.trunc(i / grid_size[0])))
+    new_group.translate(-qr_width/2, 0)
+    new_group.rotate(tag_rotation, label_offset)
     dwg.add(new_group)
 # dwg = svgwrite.Drawing('test.svg', profile='tiny')
 # dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
