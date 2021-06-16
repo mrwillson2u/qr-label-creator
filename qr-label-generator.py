@@ -24,7 +24,7 @@ initial_offset = ((page_size[0] - (((grid_size[0] - 1) * spacing[0]) + label_siz
 # initial_offset = (0, 0)
 print('initial_offset', initial_offset)
 dwg = svgwrite.Drawing('test3.svg', size = page_size)
-dwg.embed_font('Urbane', '/Users/colinwillson/Library/Fonts/Urbane 9.otf')
+# dwg.embed_font('Urbane', '/Users/colinwillson/Library/Fonts/Urbane 9.otf')
 
 # dwg.translate(initial_offset)
 
@@ -68,22 +68,31 @@ for i in range(grid_size[0] * grid_size[1]):
     title_text_height = 12
     id_text_size = 8
     text_offset = 0
-    new_group.add(dwg.text('Inventory',
+
+    new_group.add(dwg.text('nSight',
         insert=(qr_width/2, qr_width + title_text_height),
+        fill='red',
+        font_size='{}px'.format(title_text_height),
+        font_weight="bold",
+        text_anchor='middle',
+        # alignment_baseline='central',
+        font_family="Helvetica"))
+    new_group.add(dwg.text('Inventory',
+        insert=(qr_width/2, qr_width + 2 + (title_text_height * 2)),
         fill='black',
         font_size='{}px'.format(title_text_height),
         # font_weight="bold",
         text_anchor='middle',
         # alignment_baseline='central',
-        font_family="Urbane"))
+        font_family="Helvetica"))
     new_group.add(dwg.text(qr_text,
-        insert=(qr_width/2, qr_width + 25),
+        insert=(qr_width/2, qr_width + title_text_height + 25),
         fill='black',
         font_size='{}px'.format(id_text_size),
         # font_weight="bold",
         text_anchor='middle',
         # alignment_baseline='central',
-        font_family="Verdana"))
+        font_family="Helvetica"))
 
     # column_ref = i % 2
     # row_ref =  trunc(i / 1)
