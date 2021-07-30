@@ -23,7 +23,7 @@ tag_rotation = 0
 #     (page_size[1] - (((grid_size[1] - 1) * spacing[1]) + label_size[1]))/2)
 initial_offset = (20.41, 22.5358)
 print('initial_offset', initial_offset)
-dwg = svgwrite.Drawing('test3.svg', size = page_size)
+dwg = svgwrite.Drawing('test4.svg', size = page_size)
 # dwg.embed_font('Urbane', '/Users/colinwillson/Library/Fonts/Urbane 9.otf')
 
 
@@ -70,9 +70,9 @@ for i in range(grid_size[0] * grid_size[1]):
     title_text_size = 8
     id_text_size = 6
     text_offset = 0
-    new_group.add(dwg.text('nSight Surgical',
+    new_group.add(dwg.text('Waffle Track',
         insert=(qr_width, 10),
-        fill='#cc0000',
+        fill='#1a2c6e',
         font_size='{}px'.format(title_text_size),
         font_weight="bold",
         # text_anchor='middle',
@@ -108,6 +108,9 @@ for i in range(grid_size[0] * grid_size[1]):
     # new_group.rotate(180)
     # dwg.add(new_group)
     ng = dwg.use(new_group)
+    ng.translate(label_size[0], label_size[1])
+    ng.rotate(180)
+
     ngi = dwg.use(new_group)
     ngi.translate(label_size[0], 0)
     ngi.rotate(180)
@@ -121,9 +124,15 @@ for i in range(grid_size[0] * grid_size[1]):
     # y = (i % 10) * 39.6851
     # pair_group.translate((((i % 2) * 133.23)),
     #     (i % 2) * 39.6851)
+
     
-    pair_group.translate((((i % 2) * 133.23) + (math.trunc(i / 10) * 256.5356)),
+    
+    pair_group.translate((((i % 2) * 133.23) + (math.trunc(i / 10) * 256.5351)),
         ((i % 10)/2 * 113.3851) - ((i % 2) * 17.0075))
+
+    if i % 2 :
+        pair_group.rotate(180)
+        pair_group.translate(-label_size[0], 0)
     dwg.add(pair_group)
 # dwg = svgwrite.Drawing('test.svg', profile='tiny')
 # dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
