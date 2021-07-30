@@ -70,9 +70,9 @@ for i in range(grid_size[0] * grid_size[1]):
     title_text_size = 8
     id_text_size = 6
     text_offset = 0
-    new_group.add(dwg.text('Waffle Track',
+    new_group.add(dwg.text('nSight Surgical',
         insert=(qr_width, 10),
-        fill='#1a2c6e',
+        fill='#cc0000',
         font_size='{}px'.format(title_text_size),
         font_weight="bold",
         # text_anchor='middle',
