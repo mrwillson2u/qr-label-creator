@@ -1,7 +1,7 @@
 import svgwrite
 import pyqrcode
-import uuid
-import base64
+# import uuid
+# import base64
 import shortuuid
 import math
 import argparse
