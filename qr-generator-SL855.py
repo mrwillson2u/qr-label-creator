@@ -6,25 +6,22 @@ import shortuuid
 import math
 import argparse
 
-# parser = argparse.ArgumentParser(prog='qr-generator', description='Process some integers.')
+parser = argparse.ArgumentParser(prog='qr-generator', description='Creates printable sheets of QR code labels.')
 
-# # Add the arguments
-# parser.add_argument('Path', type=str, help='the path to list')
+# Add the arguments
+parser.add_argument('-o', '--output', type=str, default='#000000', help='File path to save the output file. If unset, the default is the current location.')
+parser.add_argument('-t', '--title', type=str, default='QR-Creator', help='Title/text name that will print on the label.')
+parser.add_argument('-s', '--subtitle', type=str, default='Inventory Tag', help='Title/text name that will print on the label.')
+parser.add_argument('-c', '--color', type=str, default='#000000', help='The hex code for the title text color.')
+parser.add_argument('-l', '--label', type=str, default='SL588', help='Name of the label template you want to use. SL588 is the default opetion.')
+parser.add_argument('-f', '--filename', type=str, default='QR_tags.svg', help='Name of the label template you want to use. SL588 is the default opetion.')
 
-# # Execute the parse_args() method
-# args = parser.parse_args()
-
-# input_path = args.Path
-
-# dwg = svgwrite.Drawing('test.svg', profile='tiny')
-# dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
-# dwg.add(dwg.text('Test', insert=(0, 0.2), fill='red'))
-# dwg.save()
+args = parser.parse_args()
 
 page_size = (612, 792)
-# spacing = (139.5463, 90)
 label_size = (99, 40.4375)
 qr_width = label_size[0]
+ 
 if label_size[0] > label_size[1] :
     qr_width = label_size[1]
 
@@ -37,7 +34,7 @@ if label_size[0] > label_size[1] :
 #     (page_size[1] - (((grid_size[1] - 1) * spacing[1]) + label_size[1]))/2)
 # initial_offset = (20.41, 22.5358)
 # print('initial_offset', initial_offset)
-dwg = svgwrite.Drawing('test3.svg', size = page_size)
+dwg = svgwrite.Drawing(args.filename, size = page_size)
 # dwg.embed_font('Urbane', '/Users/colinwillson/Library/Fonts/Urbane 9.otf')
 
 
