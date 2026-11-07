@@ -37,7 +37,7 @@ if label_size[0] > label_size[1] :
 #     (page_size[1] - (((grid_size[1] - 1) * spacing[1]) + label_size[1]))/2)
 # initial_offset = (20.41, 22.5358)
 # print('initial_offset', initial_offset)
-dwg = svgwrite.Drawing('test3.svg', size = page_size)
+dwg = svgwrite.Drawing('test12.svg', size = page_size)
 # dwg.embed_font('Urbane', '/Users/colinwillson/Library/Fonts/Urbane 9.otf')
 
 
@@ -98,8 +98,9 @@ while True :
             x = 0
         else: 
             currennt_cord = (x * block_size, y * block_size)
-            
-            new_group.add(dwg.rect(currennt_cord, (block_size, block_size), fill='white' if int(square) == 0 else 'black'))
+            # print('square:', square)
+            if int(square) == 1:
+                new_group.add(dwg.rect(currennt_cord, (block_size, block_size), fill='black'))
             x += 1
 
     # Add text next to the code

@@ -96,7 +96,8 @@ while True :
         else: 
             currennt_cord = (x * block_size, y * block_size)
             
-            new_group.add(dwg.rect(currennt_cord, (block_size, block_size), fill='white' if int(square) == 0 else 'black'))
+            if int(square) == 1:
+                new_group.add(dwg.rect(currennt_cord, (block_size, block_size), fill='black'))
             x += 1
 
     # Add text next to the code
