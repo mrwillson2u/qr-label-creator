@@ -1,193 +1,186 @@
-import svgwrite
-import pyqrcode
-# import uuid
-# import base64
-import shortuuid
-import math
+#!/usr/bin/env python3
+"""Command-line front end for the qrlabels package. Run with --help for options."""
 import argparse
+import sys
+from dataclasses import replace
 from datetime import datetime
+from pathlib import Path
 
-parser = argparse.ArgumentParser(prog='qr-generator', description='Creates printable sheets of QR code labels.')
-
-# Add the arguments
-parser.add_argument('-o', '--output', type=str, help='File path to save the output file. If unset, the default is the current location.')
-parser.add_argument('-t', '--title', type=str, default='Paperless-ngx', help='Title/text name that will print on the label.')
-parser.add_argument('-s', '--subtitle', type=str, default='Archive Serial Number', help='Subtitle/text name that will print on the label.')
-parser.add_argument('-c', '--title-color', type=str, default='#336699', help='The hex code for the title text color.')
-parser.add_argument('--sub-color', type=str, default='#000000', help='The hex code for the subtitle title text color.')
-parser.add_argument('-l', '--label', type=str, default='SL588', help='Name of the label template you want to use. SL588 is the default opetion.')
-parser.add_argument('-f', '--filename', type=str, help='Name of the label template you want to use. SL588 is the default opetion.')
-parser.add_argument('--page-width', type=float, default=612, help='Width of the page in pixels.')
-parser.add_argument('--page-height', type=float, default=792, help='Height of the page in pixels.')
-parser.add_argument('--label-width', type=float, default=126, help='Width of the label in pixels.')
-parser.add_argument('--label-height', type=float, default=36, help='Height of the label in pixels.')
-parser.add_argument('--margin-left', type=float, default=21.6002, help='Width of the left margin in pixels.')
-parser.add_argument('--margin-top', type=float, default=31, help='Width of the top margin in pixels.')
-parser.add_argument('--hgutter', type=float, default=0.375, help='Height of the horizontal gutter between labels in pixels.')
-parser.add_argument('--vgutter', type=float, default=24, help='Width of the vertical gutter between labels in pixels.')
-parser.add_argument('--row-count', type=int, default=19, help='How many rows of labels.')
-parser.add_argument('--column-count', type=int, default=4, help='How many columns of labels.')
-parser.add_argument('--random', type=bool, default=False, help='Randomly generate a unique string for every label.')
-parser.add_argument('--start-val', type=int, default=0, help='Starting value for sequential labels.')
-parser.add_argument('--prefix', type=str, default='test', help='prefix to prepend tto the beginning of the label value.')
-
-args = parser.parse_args()
-
-page_size = (args.page_width, args.page_height)
-label_size = (args.label_width, args.label_height)
-qr_width = label_size[0]
- 
-if label_size[0] > label_size[1] :
-    qr_width = label_size[1]
-
-# grid_size = (3, 10)
-# rotation_offset = (0, 0)
-# label_offset = (0, 0)
-# tag_rotation = 0
-
-# initial_offset = ((page_size[0] - (((grid_size[0] - 1) * spacing[0]) + label_size[0]))/2,
-#     (page_size[1] - (((grid_size[1] - 1) * spacing[1]) + label_size[1]))/2)
-# initial_offset = (20.41, 22.5358)
-# print('initial_offset', initial_offset)
-
-current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-output_filename = 'labels-' + current_time + '.svg'
-if args.filename is not None:
-    output_filename = args.filename
-
-dwg = svgwrite.Drawing(output_filename, size = page_size)
-# dwg.embed_font('Urbane', '/Users/colinwillson/Library/Fonts/Urbane 9.otf')
+from qrlabels import (
+    PT_PER_INCH, TEMPLATES, LabelStyle, get_template, parse_length, print_then_cut,
+    random_ids, read_ids, render_pages, sequential_ids, write_png, write_svg,
+)
 
 
-# dwg.translate(initial_offset)
-def get_translation( index ):
-    orientation_portrait = True # Portrait or lanscape orientation
-    label_padding = (5, 5) # Space from outter edge of label to print text/content
-    start_offset = (args.margin_left, args.margin_top) # Coordinate of upper left label's upper left corner in pixels (X, Y)
-    
-    grid_size = (args.column_count, args.row_count) # Label count (X, Y)
-    margin = (args.vgutter, args.hgutter) # Space between labels (X, Y)
-    rotation = 0 # Rotation of initial label
-
-    trans_x = start_offset[0] + (math.floor(index / grid_size[1]) * (label_size[0] + margin[0]))
-    trans_y = start_offset[1] + ((index % grid_size[1]) * (label_size[1] + margin[1]))
-    label_translation = (trans_x, trans_y, 0) # (X, Y, Rotation)
-
-    if index < grid_size[0] * grid_size[1]:
-        return label_translation
-    else :
-        return None
+def _length(value):
+    try:
+        return parse_length(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error))
 
 
-i = 0
-while True :
-# for i in range(grid_size[0] * grid_size[1]):
-    label_trans = get_translation(i)
+def build_parser():
+    parser = argparse.ArgumentParser(
+        prog="qr-labels",
+        description="Create printable sheets of QR code labels. "
+                    "Lengths accept units: 36 (points), 0.5in, 13mm.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("-t", "--template", default="SL588", help="label sheet template")
+    parser.add_argument("--list-templates", action="store_true", help="show templates and exit")
+    parser.add_argument("-o", "--output", help="output file or directory (default: timestamped name here)")
 
-    if label_trans == None :
-        break
-    # print(qr.text())
-    # tag_offset = (spacing[0] * i, spacing[1] * i)
-    # tag_rotation = 0
-    # qr_text = str(uuid.uuid1()) #base64.urlsafe_b64encode(uuid.uuid1().bytes).rstrip(b'=').decode('ascii')
-    qr_text = args.prefix
-    if(args.random):
-        qr_text = qr_text + shortuuid.uuid()[:12]
+    text = parser.add_argument_group("label text")
+    text.add_argument("--title", default=LabelStyle.title)
+    text.add_argument("--subtitle", default=LabelStyle.subtitle, help="pass '' to leave out")
+    text.add_argument("--title-color", default=LabelStyle.title_color)
+    text.add_argument("--subtitle-color", default=LabelStyle.subtitle_color)
+    text.add_argument("--id-color", default=LabelStyle.id_color)
+    text.add_argument("--font", default=LabelStyle.font_family)
+
+    ids = parser.add_argument_group("label IDs (random unless --sequential or --ids-file)")
+    ids.add_argument("--random-length", type=int, default=12, help="characters in each random ID")
+    ids.add_argument("--prefix", default="", help="text before each ID, e.g. ASN for Paperless-ngx")
+    ids.add_argument("--sequential", action="store_true",
+                     help="numbered IDs instead; numbering restarts each run, so set --start")
+    ids.add_argument("--start", type=int, default=1, help="first number with --sequential")
+    ids.add_argument("--digits", type=int, default=8, help="zero-padded width with --sequential")
+    ids.add_argument("--ids-file", help="print these IDs, one per line, e.g. to reprint a damaged label")
+    ids.add_argument("--count", type=int, help="number of labels (default: fill --pages sheets)")
+
+    qr = parser.add_argument_group("QR code")
+    qr.add_argument("--qr-data", default=LabelStyle.qr_data,
+                    help="what the code encodes, e.g. 'https://inventory.local/item/{id}'")
+    qr.add_argument("--error", choices="lmqh", default=LabelStyle.error_correction,
+                    help="error correction; lower makes larger, easier-to-scan modules")
+
+    sheet = parser.add_argument_group("sheet")
+    sheet.add_argument("--pages", type=int, default=1)
+    sheet.add_argument("--skip", type=int, default=0, help="leave this many labels empty on a used sheet")
+    sheet.add_argument("--outlines", action="store_true", help="draw label edges, for test prints")
+
+    geometry = parser.add_argument_group("custom geometry (overrides the template)")
+    geometry.add_argument("--label-size", nargs=2, type=_length, metavar=("W", "H"))
+    geometry.add_argument("--grid", nargs=2, type=int, metavar=("COLUMNS", "ROWS"))
+    geometry.add_argument("--origin", nargs=2, type=_length, metavar=("X", "Y"),
+                          help="top-left corner of the first label")
+    geometry.add_argument("--gap", nargs=2, type=_length, metavar=("COLUMN", "ROW"))
+    geometry.add_argument("--page-size", nargs=2, type=_length, metavar=("W", "H"))
+    geometry.add_argument("--corner-radius", type=_length)
+    geometry.add_argument("--layout", choices=("side", "stacked"))
+    geometry.add_argument("--rotate", type=int, choices=(0, 90, 180, 270), help="turn content in the label")
+
+    cricut = parser.add_argument_group("Cricut Print Then Cut")
+    cricut.add_argument("--cricut", action="store_true",
+                        help="lay the template's label out for Print Then Cut and also export a PNG")
+    cricut.add_argument("--cricut-gap", type=_length, default="0.125in", help="space between labels")
+    cricut.add_argument("--dpi", type=int, default=300, help="PNG resolution")
+    return parser
+
+
+def _apply_overrides(template, args):
+    changes = {}
+    if args.label_size:
+        changes["label_size"] = tuple(args.label_size)
+    if args.grid:
+        changes["columns"], changes["rows"] = args.grid
+    if args.origin:
+        changes["origin"] = tuple(args.origin)
+    if args.gap:
+        changes["gap"] = tuple(args.gap)
+    if args.page_size:
+        changes["page_size"] = tuple(args.page_size)
+    if args.corner_radius is not None:
+        changes["corner_radius"] = args.corner_radius
+    if args.layout:
+        changes["layout"] = args.layout
+    if args.rotate is not None:
+        changes["rotation"] = args.rotate
+    if changes.keys() & {"columns", "origin", "gap"}:
+        changes["fixed_slots"] = None
+    return replace(template, **changes) if changes else template
+
+
+def _off_page(template):
+    w, h = template.label_size
+    page_w, page_h = template.page_size
+    return any(s.x < 0 or s.y < 0 or s.x + w > page_w + 0.01 or s.y + h > page_h + 0.01
+               for s in template.slots())
+
+
+def _output_base(output, template_name):
+    name = f"labels-{template_name}-{datetime.now():%Y-%m-%d_%H-%M-%S}"
+    if not output:
+        return Path(name)
+    path = Path(output)
+    if path.is_dir():
+        return path / name
+    return path.with_suffix("") if path.suffix.lower() in (".svg", ".png") else path
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.list_templates:
+        for t in TEMPLATES.values():
+            w, h = (v / PT_PER_INCH for v in t.label_size)
+            print(f"{t.name:<10} {len(t.slots()):>3} per sheet  {w:.3g} x {h:.3g} in  {t.description}")
+        return 0
+
+    try:
+        template = _apply_overrides(get_template(args.template), args)
+        if args.cricut:
+            template = print_then_cut(template, gap=args.cricut_gap)
+    except (KeyError, ValueError) as error:
+        parser.error(str(error).strip("'\""))
+    if _off_page(template):
+        print("warning: some labels run past the page edge; check the geometry", file=sys.stderr)
+
+    per_page = len(template.slots())
+    if args.ids_file:
+        label_ids = read_ids(args.ids_file)
     else:
-        qr_text = qr_text + f"{args.start_val + i:08}"
-    # qr_text = '12345'
-    # print('label value:', qr_text)
-    qr = pyqrcode.create(qr_text)
-    qrData = qr.text()
-    print('qr_text', qr_text)
-    # blocks_per_line = len(qrData) ** 2
-    blocks_per_line = 0
-    while qrData[blocks_per_line] != '\n':
-        blocks_per_line += 1
+        count = args.count if args.count is not None else per_page * args.pages - args.skip
+        if args.sequential:
+            label_ids = sequential_ids(count, args.start, args.prefix, args.digits)
+        else:
+            label_ids = random_ids(count, args.prefix, args.random_length)
 
-    block_size = qr_width/blocks_per_line
-    # print(block_size)
-    x = 0
-    y = 0
+    style = LabelStyle(
+        title=args.title, subtitle=args.subtitle,
+        title_color=args.title_color, subtitle_color=args.subtitle_color, id_color=args.id_color,
+        font_family=args.font, qr_data=args.qr_data, error_correction=args.error,
+    )
+    try:
+        pages = render_pages(template, label_ids, style, skip=args.skip,
+                             background=args.cricut, outlines=args.outlines)
+    except ValueError as error:
+        parser.error(str(error))
 
-    new_group = dwg.defs.add(dwg.g(id = qr_text))
+    base = _output_base(args.output, template.name)
+    for number, page in enumerate(pages, 1):
+        stem = base if len(pages) == 1 else base.with_name(f"{base.name}-p{number}")
+        svg_path = stem.with_name(stem.name + ".svg")
+        write_svg(page, svg_path)
+        print(svg_path)
+        if args.cricut:
+            png_path = stem.with_name(stem.name + ".png")
+            try:
+                write_png(page, png_path, args.dpi)
+            except RuntimeError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 1
+            print(png_path)
 
-    # Constructo QR Code block by block
-    for square in qrData:
-        if square == '\n':
-            y += 1
-            x = 0
-        else: 
-            current_cord = (x * block_size, y * block_size)
-            
-            if int(square) == 1:
-                new_group.add(dwg.rect(current_cord, (block_size, block_size), fill='black'))
-            x += 1
+    print(f"{len(label_ids)} labels on {len(pages)} page(s), {template.name}, {per_page} per page",
+          file=sys.stderr)
+    if args.cricut:
+        w, h = (v / PT_PER_INCH for v in template.page_size)
+        print(f"In Design Space, upload the PNG as a Print Then Cut image and size it to "
+              f"{w:.3f} in x {h:.3f} in (W x H) before Make It.", file=sys.stderr)
+    return 0
 
-    # Add text next to the code
-    title_text_size = 7
-    id_text_size = 8
-    text_offset = 0
-    new_group.add(dwg.text(args.title,
-        insert=(qr_width, 10),
-        fill=args.title_color,
-        font_size='{}px'.format(title_text_size),
-        font_weight="bold",
-        # text_anchor='middle',
-        # alignment_baseline='central',
-        font_family="Helvetica"))
-    new_group.add(dwg.text(args.subtitle,
-        insert=(qr_width, title_text_size + 11),
-        fill=args.sub_color,
-        font_size='{}px'.format(title_text_size),
-        # font_weight="bold",
-        # text_anchor='middle',
-        # alignment_baseline='central',
-        font_family="Helvetica"))
-    new_group.add(dwg.text(qr_text,
-        insert=(qr_width, title_text_size + id_text_size + 14),
-        fill='black',
-        font_size='{}px'.format(id_text_size),
-        # font_weight="bold",
-        # text_anchor='middle',
-        # alignment_baseline='central',
-        font_family="Helvetica"))
 
-    # column_ref = i % 2
-    # row_ref =  trunc(i / 1)
-    # if i % 2 != 0:
-    #     column_ref = 1
-    # new_group.translate(initial_offset)
-    # new_group.translate(5, label_size[1]/2)
-    # new_group.translate((spacing[0] * ((i % grid_size[0]))), (spacing[1] * math.trunc(i / grid_size[0])))
-    # new_group.translate(-qr_width/2, 0)
-    # new_group.rotate(tag_rotation, rotation_offset)
-    # new_group_inverted = dwg.add(new_group)
-    # new_group.rotate(180)
-    # dwg.add(new_group)
-    ng = dwg.use(new_group)
-    # ngi = dwg.use(new_group)
-    # ngi.translate(label_size[0], 0)
-    # ngi.rotate(180)
-
-    label_group = dwg.g(id = '{}-group'.format(qr_text))
-    label_group.add(ng)
-    # pair_group.add(ngi)
-    
-    
-    label_group.translate(label_trans[0], label_trans[1])
-    
-    # x = (((i % 2) * 133.23) + (math.trunc(i / 10) * 256.5356))
-    # y = (i % 10) * 39.6851
-    # pair_group.translate((((i % 2) * 133.23)),
-    #     (i % 2) * 39.6851)
-    
-    # pair_group.translate((((i % 2) * 133.23) + (math.trunc(i / 10) * 256.5351)),
-    #     ((i % 10)/2 * 113.3851) - ((i % 2) * 17.0075))
-    dwg.add(label_group)
-
-    i += 1
-# dwg = svgwrite.Drawing('test.svg', profile='tiny')
-# dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
-dwg.save()
+if __name__ == "__main__":
+    sys.exit(main())

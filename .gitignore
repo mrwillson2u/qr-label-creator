@@ -1,3 +1,5 @@
 *.svg
+*.png
 .vscode
-
+.DS_Store
+__pycache__/

@@ -1,0 +1,3 @@
+segno>=1.5
+# Only needed for --cricut PNG export; also needs the Cairo library (brew install cairo).
+cairosvg>=2.5
